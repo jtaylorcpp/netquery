@@ -8,6 +8,7 @@ import (
 	"path/filepath"
 
 	"github.com/spf13/cobra"
+	"gitlab.com/nfgtech/broparser"
 	"gitlab.com/nfgtech/netquery"
 )
 
@@ -91,7 +92,9 @@ var runCmd = &cobra.Command{
 			tailers := netquery.GetBroTailers(path, files)
 			log.Println(tailers)
 
-			netquery.StartServer(tailers)
+			db := broparser.NewPostgresDB(postgresHost, postgresPort, postgresUser, postgresPass, postgresDB)
+
+			netquery.StartAgent(tailers, db)
 		}
 	},
 }
