@@ -6,7 +6,7 @@ import (
 	"log"
 
 	"github.com/hpcloud/tail"
-	"gitlab.com/nfgtech/broparser"
+	"github.com/jtaylorcpp/broparser"
 )
 
 var supportedLogs = map[string]bool{

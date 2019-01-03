@@ -7,9 +7,9 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/jtaylorcpp/broparser"
+	"github.com/jtaylorcpp/netquery"
 	"github.com/spf13/cobra"
-	"gitlab.com/nfgtech/broparser"
-	"gitlab.com/nfgtech/netquery"
 )
 
 var broDir string

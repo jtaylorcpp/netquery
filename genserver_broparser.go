@@ -3,9 +3,9 @@ package netquery
 import (
 	"log"
 
+	"github.com/jtaylorcpp/broparser"
 	"github.com/jtaylorcpp/gerl/core"
 	"github.com/jtaylorcpp/gerl/genserver"
-	"gitlab.com/nfgtech/broparser"
 )
 
 func defaultCall(_ core.Pid, _ core.Message, _ genserver.FromAddr, s genserver.State) (core.Message, genserver.State) {
