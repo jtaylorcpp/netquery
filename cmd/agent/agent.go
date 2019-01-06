@@ -1,7 +1,6 @@
-package main
+package agent
 
 import (
-	"fmt"
 	"io/ioutil"
 	"log"
 	"os"
@@ -18,14 +17,18 @@ var postgresPort string
 var postgresDB string
 var postgresUser string
 var postgresPass string
+var queryAddr string
+var gerlPort string
 
 func init() {
-	runCmd.Flags().StringVarP(&broDir, "bro-dir", "b", "", "bro log directory to watch")
-	runCmd.Flags().StringVarP(&postgresHost, "psql-host", "", "localhost", "postgres hostname")
-	runCmd.Flags().StringVarP(&postgresPort, "psql-port", "", "5432", "postgres port")
-	runCmd.Flags().StringVarP(&postgresDB, "psql-db", "", "brodb", "postgres db name")
-	runCmd.Flags().StringVarP(&postgresUser, "psql-user", "", "brouser", "postgres username")
-	runCmd.Flags().StringVarP(&postgresPass, "psql-pass", "", "bropass", "postgres user pasword")
+	RunCmd.Flags().StringVarP(&broDir, "bro-dir", "b", "", "bro log directory to watch")
+	RunCmd.Flags().StringVarP(&postgresHost, "psql-host", "", "localhost", "postgres hostname")
+	RunCmd.Flags().StringVarP(&postgresPort, "psql-port", "", "5432", "postgres port")
+	RunCmd.Flags().StringVarP(&postgresDB, "psql-db", "", "brodb", "postgres db name")
+	RunCmd.Flags().StringVarP(&postgresUser, "psql-user", "", "brouser", "postgres username")
+	RunCmd.Flags().StringVarP(&postgresPass, "psql-pass", "", "bropass", "postgres user pasword")
+	RunCmd.Flags().StringVarP(&queryAddr, "netquery-port", "p", "9001", "netquery port")
+	RunCmd.Flags().StringVarP(&gerlPort, "gerl-registrar-port", "r", "9000", "gerl registrar port")
 
 	agentErase.Flags().StringVarP(&postgresHost, "psql-host", "", "localhost", "postgres hostname")
 	agentErase.Flags().StringVarP(&postgresPort, "psql-port", "", "5432", "postgres port")
@@ -33,29 +36,10 @@ func init() {
 	agentErase.Flags().StringVarP(&postgresUser, "psql-user", "", "brouser", "postgres username")
 	agentErase.Flags().StringVarP(&postgresPass, "psql-pass", "", "bropass", "postgres user pasword")
 
-	rootCmd.AddCommand(runCmd)
-	runCmd.AddCommand(agentErase)
+	RunCmd.AddCommand(agentErase)
 }
 
-func main() {
-	execute()
-}
-
-func execute() {
-	if err := rootCmd.Execute(); err != nil {
-		log.Fatal(err)
-	}
-}
-
-var rootCmd = &cobra.Command{
-	Use:   "netquery",
-	Short: "netquery is a SQL service for network data",
-	Run: func(cmd *cobra.Command, args []string) {
-		fmt.Println("welcome to netquery! Use the -h flag to see more options.")
-	},
-}
-
-var runCmd = &cobra.Command{
+var RunCmd = &cobra.Command{
 	Use:   "agent",
 	Short: "run netquery in agent mode",
 	Run: func(cmd *cobra.Command, args []string) {
@@ -103,7 +87,7 @@ var runCmd = &cobra.Command{
 			databases.PSQLInit(brodb)
 			defer brodb.Close()
 
-			netquery.StartAgent(tailers, brodb)
+			netquery.StartAgent(tailers, brodb, gerlPort, queryAddr)
 		}
 	},
 }

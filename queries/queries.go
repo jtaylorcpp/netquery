@@ -4,10 +4,10 @@ import (
 	"github.com/jinzhu/gorm"
 )
 
-type query struct {
+type Query struct {
 	db *gorm.DB
 }
 
-func NewQuery(db *gorm.DB) *query {
-	return &query{db: db.New()}
+func NewQuery(db *gorm.DB) *Query {
+	return &Query{db: db.New()}
 }

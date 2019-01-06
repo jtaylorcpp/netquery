@@ -1,31 +1,48 @@
 package queries
 
 import (
+	"strconv"
+	"strings"
 	"time"
 
 	//"github.com/jinzhu/gorm"
 	bp "github.com/jtaylorcpp/broparser"
 )
 
-/*
-by ip address (client or server or both)
-by port (client  or server or both)
-by protocol
-by service
-by duration
+type BroConnQuery struct {
+	clientAddrs []string
+	clientPorts []uint16
+	serverAddrs []string
+	serverPorts []uint16
+	protocols   []string
+	services    []string
+	beforeTs    time.Time
+	afterTs     time.Time
+}
 
-before timestamp
-after timestamp
-between timesamp range
+func BroConnQuertFromString(clientAddrs, clientPorts, serverAddrs, serverPorts,
+	protocols, services, beforeTs, afterTs string) BroConnQuery {
+	query := BroConnQuery{}
 
-duration shorter than
-duration longer than
-duration in range
+	query.clientAddrs = []string{}
+	for _, caddr := range strings.Split(clientAddrs, ",") {
+		query.clientAddrs = append(query.clientAddrs, caddr)
+	}
 
-*/
+	query.clientPorts = []uint16{}
+	for _, cport := range strings.Split(clientPorts, ",") {
+		pu64, err := strconv.ParseUint(cport, 10, 64)
+		if err != nil {
+			panic(err)
+		}
+		query.clientPorts = append(query.clientPorts, uint16(pu64))
+	}
+
+	return query
+}
 
 // Returns all conn records in agiven database
-func (q *query) BroConnAll() []bp.ConnRecord {
+func (q *Query) BroConnAll() []bp.ConnRecord {
 	rows, err := q.db.Exec("SELECT * FROM conn_records;").Rows()
 	if err != nil {
 		panic(err)
@@ -43,7 +60,7 @@ func (q *query) BroConnAll() []bp.ConnRecord {
 }
 
 //
-func (q *query) BroConn(clientAddrs []string, clientPorts []uint16,
+func (q *Query) BroConn(clientAddrs []string, clientPorts []uint16,
 	serverAddrs []string, serverPorts []uint16,
 	protocols []string, services []string,
 	beforeTs time.Time, afterTs time.Time) []bp.ConnRecord {

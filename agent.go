@@ -11,14 +11,26 @@ import (
 	"github.com/jtaylorcpp/gerl/core"
 	"github.com/jtaylorcpp/gerl/genserver"
 	"github.com/jtaylorcpp/gerl/registrar"
+	"github.com/jtaylorcpp/netquery/queries"
 )
 
-func StartAgent(logfiles map[string]*tail.Tail, db *gorm.DB) {
+func StartAgent(logfiles map[string]*tail.Tail, db *gorm.DB, registrarPort string, queryPort string) {
 
-	reg := registrar.NewRegistrar(core.LocalScope)
+	reg := registrar.NewRegistrarWithPort(core.GlobalScope, registrarPort)
 	log.Printf("Registrar started at: %v", reg.Pid.GetAddr())
 
 	servers := []*genserver.GenServer{}
+
+	log.Println("Starting query service")
+	querygs := genserver.NewGenServerWithPort(queries.NewQuery(db), core.GlobalScope, queryPort, postgresCall, postgresCast)
+	servers = append(servers, querygs)
+	queryRecord := registrar.NewRecord("query", querygs.Pid.GetAddr(), core.GlobalScope)
+	log.Printf("dding record to registrar: %v\n", queryRecord)
+	if registrar.AddRecords(reg.Pid.GetAddr(), "query server", queryRecord) {
+		log.Printf("genserver %s added to registrar\n", "query")
+	} else {
+		log.Fatalf("genserver %s failed to be added to registrar\n", "query")
+	}
 
 	for logname, tailer := range logfiles {
 		loggs := genserver.NewGenServer(ParserState{Type: logname, DB: db.New()}, core.LocalScope, defaultCall, logCast)
@@ -28,7 +40,7 @@ func StartAgent(logfiles map[string]*tail.Tail, db *gorm.DB) {
 		logRec := registrar.NewRecord(logname, loggs.Pid.GetAddr(), core.LocalScope)
 		log.Printf("adding record to registrar: %v\n", logRec)
 
-		if registrar.AddRecords(reg.Pid.GetAddr(), "server init", logRec) {
+		if registrar.AddRecords(reg.Pid.GetAddr(), "filewatcher server init", logRec) {
 			log.Printf("genserver %s added to registrar\n", logname)
 		} else {
 			log.Fatalf("genserver %s cannot be added to registrar", logname)
