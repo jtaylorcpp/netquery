@@ -7,8 +7,8 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/jtaylorcpp/broparser"
 	"github.com/jtaylorcpp/netquery"
+	"github.com/jtaylorcpp/netquery/databases"
 	"github.com/spf13/cobra"
 )
 
@@ -27,7 +27,14 @@ func init() {
 	runCmd.Flags().StringVarP(&postgresUser, "psql-user", "", "brouser", "postgres username")
 	runCmd.Flags().StringVarP(&postgresPass, "psql-pass", "", "bropass", "postgres user pasword")
 
+	agentErase.Flags().StringVarP(&postgresHost, "psql-host", "", "localhost", "postgres hostname")
+	agentErase.Flags().StringVarP(&postgresPort, "psql-port", "", "5432", "postgres port")
+	agentErase.Flags().StringVarP(&postgresDB, "psql-db", "", "brodb", "postgres db name")
+	agentErase.Flags().StringVarP(&postgresUser, "psql-user", "", "brouser", "postgres username")
+	agentErase.Flags().StringVarP(&postgresPass, "psql-pass", "", "bropass", "postgres user pasword")
+
 	rootCmd.AddCommand(runCmd)
+	runCmd.AddCommand(agentErase)
 }
 
 func main() {
@@ -92,9 +99,21 @@ var runCmd = &cobra.Command{
 			tailers := netquery.GetBroTailers(path, files)
 			log.Println(tailers)
 
-			db := broparser.NewPostgresDB(postgresHost, postgresPort, postgresUser, postgresPass, postgresDB)
+			brodb := databases.NewPostgresDB(postgresHost, postgresPort, postgresUser, postgresPass, postgresDB)
+			databases.PSQLInit(brodb)
+			defer brodb.Close()
 
-			netquery.StartAgent(tailers, db)
+			netquery.StartAgent(tailers, brodb)
 		}
+	},
+}
+
+var agentErase = &cobra.Command{
+	Use:   "erase",
+	Short: "erase all data collected by agent",
+	Run: func(cmd *cobra.Command, args []string) {
+		brodb := databases.NewPostgresDB(postgresHost, postgresPort, postgresUser, postgresPass, postgresDB)
+		databases.PSQLClear(brodb)
+		brodb.Close()
 	},
 }

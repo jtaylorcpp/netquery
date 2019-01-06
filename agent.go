@@ -13,11 +13,6 @@ import (
 	"github.com/jtaylorcpp/gerl/registrar"
 )
 
-type ParserState struct {
-	Type string
-	DB   *gorm.DB
-}
-
 func StartAgent(logfiles map[string]*tail.Tail, db *gorm.DB) {
 
 	reg := registrar.NewRegistrar(core.LocalScope)
@@ -26,7 +21,7 @@ func StartAgent(logfiles map[string]*tail.Tail, db *gorm.DB) {
 	servers := []*genserver.GenServer{}
 
 	for logname, tailer := range logfiles {
-		loggs := genserver.NewGenServer(ParserState{Type: logname, DB: db}, core.LocalScope, defaultCall, logCast)
+		loggs := genserver.NewGenServer(ParserState{Type: logname, DB: db.New()}, core.LocalScope, defaultCall, logCast)
 
 		log.Printf("genserver for %s at addr %v\n", logname, loggs.Pid.GetAddr())
 

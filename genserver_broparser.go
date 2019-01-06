@@ -3,10 +3,16 @@ package netquery
 import (
 	"log"
 
+	"github.com/jinzhu/gorm"
 	"github.com/jtaylorcpp/broparser"
 	"github.com/jtaylorcpp/gerl/core"
 	"github.com/jtaylorcpp/gerl/genserver"
 )
+
+type ParserState struct {
+	Type string
+	DB   *gorm.DB
+}
 
 func defaultCall(_ core.Pid, _ core.Message, _ genserver.FromAddr, s genserver.State) (core.Message, genserver.State) {
 	return core.Message{}, s
