@@ -16,7 +16,8 @@ func postgresCall(_ core.Pid, msg core.Message, faddr genserver.FromAddr, s gens
 		switch msg.Subtype {
 		case core.Message_GET:
 			//parse logs
-			log.Println("message to parse: ", msg)
+			log.Println("postgres query: ", msg)
+			return msg, s
 		default:
 			log.Printf("postgres does not handle subtype %v\n", msg.Subtype)
 		}

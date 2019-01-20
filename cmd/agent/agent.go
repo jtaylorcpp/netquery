@@ -6,6 +6,7 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/hpcloud/tail"
 	"github.com/jtaylorcpp/netquery"
 	"github.com/jtaylorcpp/netquery/databases"
 	"github.com/spf13/cobra"
@@ -88,6 +89,12 @@ var RunCmd = &cobra.Command{
 			defer brodb.Close()
 
 			netquery.StartAgent(tailers, brodb, gerlPort, queryAddr)
+		} else {
+			brodb := databases.NewPostgresDB(postgresHost, postgresPort, postgresUser, postgresPass, postgresDB)
+			databases.PSQLInit(brodb)
+			defer brodb.Close()
+
+			netquery.StartAgent(map[string]*tail.Tail{}, brodb, gerlPort, queryAddr)
 		}
 	},
 }

@@ -4,6 +4,8 @@ import (
 	"github.com/jinzhu/gorm"
 )
 
+type QueryInterface interface{}
+
 type Query struct {
 	db *gorm.DB
 }

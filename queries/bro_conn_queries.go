@@ -1,7 +1,8 @@
 package queries
 
 import (
-	"strconv"
+	"encoding/json"
+	"log"
 	"strings"
 	"time"
 
@@ -10,36 +11,61 @@ import (
 )
 
 type BroConnQuery struct {
-	clientAddrs []string
-	clientPorts []uint16
-	serverAddrs []string
-	serverPorts []uint16
-	protocols   []string
-	services    []string
-	beforeTs    time.Time
-	afterTs     time.Time
+	ClientAddrs []string  `json:"client_addrs"`
+	ClientPorts []uint16  `json:"client_ports"`
+	ServerAddrs []string  `json:"server_addrs"`
+	ServerPorts []uint16  `json:"server_ports"`
+	Protocols   []string  `json:"Protocols"`
+	Services    []string  `json:"Services"`
+	BeforeTs    time.Time `json:"before_ts"`
+	AfterTs     time.Time `json:"after_ts"`
 }
 
-func BroConnQuertFromString(clientAddrs, clientPorts, serverAddrs, serverPorts,
-	protocols, services, beforeTs, afterTs string) BroConnQuery {
-	query := BroConnQuery{}
+func BroConnQueryFromKV(fields map[string]string) QueryInterface {
 
-	query.clientAddrs = []string{}
-	for _, caddr := range strings.Split(clientAddrs, ",") {
-		query.clientAddrs = append(query.clientAddrs, caddr)
+	query := BroConnQuery{
+		ClientAddrs: []string{},
+		ClientPorts: []uint16{},
+		ServerAddrs: []string{},
+		ServerPorts: []uint16{},
+		Protocols:   []string{},
+		Services:    []string{},
+		BeforeTs:    time.Time{},
+		AfterTs:     time.Time{},
 	}
 
-	query.clientPorts = []uint16{}
-	for _, cport := range strings.Split(clientPorts, ",") {
-		pu64, err := strconv.ParseUint(cport, 10, 64)
-		if err != nil {
-			panic(err)
+	for k, v := range fields {
+		switch k {
+		case "client_addrs":
+			query.ClientAddrs = strings.Split(v, ",")
+		case "client_ports":
+		case "server_addrs":
+			query.ServerAddrs = strings.Split(v, ",")
+		case "server_ports":
+		case "Protocols":
+			query.Protocols = strings.Split(v, ",")
+		case "Services":
+			query.Services = strings.Split(v, ",")
+		case "ts_after":
+		case "ts_before":
+		default:
+			log.Printf("unknown conn key %v with value %v\n", k, v)
 		}
-		query.clientPorts = append(query.clientPorts, uint16(pu64))
-	}
 
+	}
 	return query
 }
+
+func BroConnQueryFromJSON(jsonBytes []byte) QueryInterface {
+	broConn := BroConnQuery{}
+	json.Unmarshal(jsonBytes, &broConn)
+
+	return broConn
+}
+
+/*
+Queries
+*/
 
 // Returns all conn records in agiven database
 func (q *Query) BroConnAll() []bp.ConnRecord {
@@ -59,15 +85,15 @@ func (q *Query) BroConnAll() []bp.ConnRecord {
 	return records
 }
 
-//
-func (q *Query) BroConn(clientAddrs []string, clientPorts []uint16,
-	serverAddrs []string, serverPorts []uint16,
-	protocols []string, services []string,
-	beforeTs time.Time, afterTs time.Time) []bp.ConnRecord {
+//Builds Query for BroConn based with flexible params
+func (q *Query) BroConn(ClientAddrs []string, ClientPorts []uint16,
+	ServerAddrs []string, ServerPorts []uint16,
+	Protocols []string, Services []string,
+	BeforeTs time.Time, AfterTs time.Time) []bp.ConnRecord {
 
 	tx := q.db
 
-	for idx, caddrs := range clientAddrs {
+	for idx, caddrs := range ClientAddrs {
 		switch idx {
 		case 0:
 			tx = tx.Where("client_addr = ?", caddrs)
@@ -76,7 +102,7 @@ func (q *Query) BroConn(clientAddrs []string, clientPorts []uint16,
 		}
 	}
 
-	for idx, cport := range clientPorts {
+	for idx, cport := range ClientPorts {
 		switch idx {
 		case 0:
 			tx = tx.Where("client_port = ?", cport)
@@ -85,7 +111,7 @@ func (q *Query) BroConn(clientAddrs []string, clientPorts []uint16,
 		}
 	}
 
-	for idx, saddr := range serverAddrs {
+	for idx, saddr := range ServerAddrs {
 		switch idx {
 		case 0:
 			tx = tx.Where("server_addr = ?", saddr)
@@ -94,7 +120,7 @@ func (q *Query) BroConn(clientAddrs []string, clientPorts []uint16,
 		}
 	}
 
-	for idx, sport := range serverPorts {
+	for idx, sport := range ServerPorts {
 		switch idx {
 		case 0:
 			tx = tx.Where("server_port = ?", sport)
@@ -103,7 +129,7 @@ func (q *Query) BroConn(clientAddrs []string, clientPorts []uint16,
 		}
 	}
 
-	for idx, proto := range protocols {
+	for idx, proto := range Protocols {
 		switch idx {
 		case 0:
 			tx = tx.Where("protocol = ?", proto)
@@ -112,7 +138,7 @@ func (q *Query) BroConn(clientAddrs []string, clientPorts []uint16,
 		}
 	}
 
-	for idx, service := range services {
+	for idx, service := range Services {
 		switch idx {
 		case 0:
 			tx = tx.Where("service = ?", service)
@@ -121,17 +147,17 @@ func (q *Query) BroConn(clientAddrs []string, clientPorts []uint16,
 		}
 	}
 
-	if !beforeTs.IsZero() && !afterTs.IsZero() {
+	if !BeforeTs.IsZero() && !AfterTs.IsZero() {
 		// range
-		tx = tx.Where("time_stamp >= ? AND time_stamp <= ?", afterTs, beforeTs)
+		tx = tx.Where("time_stamp >= ? AND time_stamp <= ?", AfterTs, BeforeTs)
 
-	} else if !beforeTs.IsZero() && afterTs.IsZero() {
+	} else if !BeforeTs.IsZero() && AfterTs.IsZero() {
 		// records before ts
-		tx = tx.Where("time_stamp <= ?", beforeTs)
+		tx = tx.Where("time_stamp <= ?", BeforeTs)
 
-	} else if beforeTs.IsZero() && !afterTs.IsZero() {
+	} else if BeforeTs.IsZero() && !AfterTs.IsZero() {
 		// records after ts
-		tx = tx.Where("time_stamp >= ?", afterTs)
+		tx = tx.Where("time_stamp >= ?", AfterTs)
 
 	} else {
 		// no-op
